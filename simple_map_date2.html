@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+
+<link rel="stylesheet" href="css/reset.css">
+<link rel="stylesheet" href="css/sample.css">
+<title>Firebase_version9_RealtimeDB(G'sACADEMY初学者用サンプル)</title>
+</head>
+<body>
+
+<header>
+    <div class="top_img">
+        <img src="img/EZOフードアプリ.png" alt="">
+    </div>
+    
+</header>
+
+<!-- コンテンツ表示画面 -->
+<div id="myMap" style="position: relative;width: 100%;height: 400px;"></div>
+<!-- <div>
+    <input type="text" id="key">
+    <textarea id="memo"></textarea>
+    <ul>
+        <li id="save">Save</li>
+        <li id="clear">Clear</li>
+    </ul>
+    <table  id="list"> -->
+        <!-- ここに追加データが挿入される -->
+    </table>
+</div>
+<div class="database">
+    <!-- データベース１表示 -->
+    <!-- データベース２表示 -->
+    <div class="database2">
+        <div> 店名：<input type="text" id="uname2"> </div>
+        <div>
+            <!-- メッセージ入力欄 -->
+            <textarea id="text2" cols="50" rows="20"></textarea>
+            <!-- 送信ボタン -->
+            <button id="send2">送信</button>
+        </div>
+        <div id="output_scroll2">
+            <div id="output2">
+        
+            </div>
+        </div>
+    </div>
+    <div class="database1">
+        <div>名前：<input type="text" id="uname"> </div>
+        <div>
+            <!-- メッセージ入力欄 -->
+            <textarea id="text" cols="50" rows="20"></textarea>
+            <!-- 送信ボタン -->
+            <button id="send">送信</button>
+        </div>
+        <div id="output_scroll">
+            <div id="output">
+        
+            </div>
+        </div>
+    </div>
+    
+</div>
+<!--/ コンテンツ表示画面 -->
+
+
+
+<!-- JQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<!-- JQuery -->
+<!-- ここから位置情報読み込み処理 -->
+<script>
+    if( navigator.geolocation ){// 現在位置を取得できる場合の処理
+    // 現在位置を取得する
+    navigator.geolocation.getCurrentPosition( success, error, option);
+    /*現在位置が取得できた時に実行*/
+    function success(position){
+    var data = position.coords;
+    // 必要な緯度経度だけ取得
+    var lat = data.latitude;
+    var lng = data.longitude;
+    //Google Mapsで住所を取得
+    var geocoder = new Microsoft.Maps.Geocoder();
+    latlng = new Microsoft.Maps.LatLng(lat, lng);
+    geocoder.geocode({'latLng': latlng}, function(results, status) {
+    if (status == Microsoft.Maps.GeocoderStatus.OK) {
+    document.getElementById('address').innerHTML = results[0].formatted_address;
+    }
+    else {
+    alert("エラー" + status);
+    }
+    });
+    }
+    /*現在位置の取得に失敗した時に実行*/
+    function error(error){
+    var errorMessage = {
+    0: "原因不明のエラーが発生しました。",
+    1: "位置情報が許可されませんでした。",
+    2: "位置情報が取得できませんでした。",
+    3: "タイムアウトしました。",
+    } ;
+    //とりあえずalert
+    alert( errorMessage[error.code]);
+    }
+    // オプション(省略可)
+    var option = {
+    "enableHighAccuracy": false,
+    "timeout": 100 ,
+    "maximumAge": 100 ,
+    } ;
+    } else {// 現在位置を取得できない場合の処理
+    //とりあえずalert
+    alert("あなたの端末では、現在位置を取得できません。");
+    }
+    </script>
+    
+
+
+<!-- BingMap API紐付け -->
+<script type='text/javascript' src='https://www.bing.com/api/maps/mapcontrol?callback=GetMap&key=AicyY0WJlpGINdUaYEtlAXUYBmdT7PsuBaZrM9ujswUJmXbHpXO5YFv-gw50EXKP' async defer></script>
+
+
+    <!-- 位置情報読み込み -->
+    <script>
+        //GoogleMapsAPIのURLパラメータにコールバック関数としてinitMap()を実行
+        //Main:位置情報を取得する処理 //getCurrentPosition :or: watchPosition
+        function init() {
+            navigator.geolocation.watchPosition(mapsInit, mapsError, set);
+        }
+
+        //1．位置情報の取得に成功した時の処理
+        function mapsInit(position) {
+            //lat=緯度、lon=経度 を取得
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            map = new Microsoft.Maps.Map('#myMap', {});
+
+            map.setView({
+                mapTypeId: Microsoft.Maps.MapTypeId.load,
+                center: new Microsoft.Maps.Location(lat, lon),
+                zoom: 15
+            });
+            let center = map.getCenter();
+            // プッシュピン配置設定
+            let pin = new Microsoft.Maps.Pushpin(center,{
+                color:'red',
+                draggable:true,
+                enableClickedStyle:true,
+                enableHoverStyle:true,
+                visible:true
+            });
+            map.entities.push(pin);
+        
+
+
+            
+        };
+
+        //2． 位置情報の取得に失敗した場合の処理
+        function mapsError(error) {
+            let e = "";
+            if (error.code == 1) { //1＝位置情報取得が許可されてない（ブラウザの設定）
+                e = "位置情報が許可されてません";
+            }
+            if (error.code == 2) { //2＝現在地を特定できない
+                e = "現在位置を特定できません";
+            }
+            if (error.code == 3) { //3＝位置情報を取得する前にタイムアウトになった場合
+                e = "位置情報を取得する前にタイムアウトになりました";
+            }
+            alert("エラー：" + e);
+        };
+
+        //3.位置情報取得オプション
+        const set = {
+            enableHighAccuracy: true, //より高精度な位置を求める
+            maximumAge: 20000, //最後の現在地情報取得が20秒以内であればその情報を再利用する設定
+            timeout: 10000 //10秒以内に現在地情報を取得できなければ、処理を終了
+        };
+        function GetMap(){
+            navigator.geolocation.watchPosition(mapsInit,mapsError,set);
+        };
+    
+    </script>
+
+    <!--** 以下Firebase **-->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getDatabase, ref, push, set, onChildAdded, remove, onChildRemoved } 
+        from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+    
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+        apiKey: "AIzaSyAtm4EQG24AINE1OBbAZ9BYMqnIh2X3EQY",
+        authDomain: "chat-e4688.firebaseapp.com",
+        projectId: "chat-e4688",
+        storageBucket: "chat-e4688.appspot.com",
+        messagingSenderId: "970537731534",
+        appId: "1:970537731534:web:15286ce0037aa7717cd79f"
+        };
+    
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db  = getDatabase(app); //データベースへの接続
+        const dbRef = ref(db,"chat"); //どのデータベースを参加するか
+        const infodb = ref(db, "info");//ユーザーテーブル
+
+        // 「chat」へ送信処理
+        $("#send").on("click",function(){
+            const msg = {
+            uname: $("#uname").val(),
+            text: $("#text").val()
+            }
+            $("#text").val("") //データ送信時にテキストを空にする
+            const newPostRef = push(dbRef);//データを一意なもの(ユニークなもの)にするための記述
+            set(newPostRef,msg)//データを保存
+        });
+        // 「chat」送信処理２
+        $("#text").on("keydown",function(e){
+            // console.log(e);
+            if(e.keyCode==13){
+            const msg = {
+            uname: $("#uname").val(),
+            text: $("#text").val()
+            }
+            $("#text").val("") //データ送信時にテキストを空にする
+            const newPostRef = push(dbRef);//データを一意なもの(ユニークなもの)にするための記述
+            set(newPostRef,msg)//データを保存
+            }
+        });
+
+        
+        // 「chat」受信処理
+        onChildAdded(dbRef,function(data){
+            const msg = data.val();
+            const key = data.key;
+            let h = '<p>';
+                h += msg.uname;
+                h += '<br>';
+                h += msg.text;
+                h += '</p>';
+                $("#output").append(h); //#outputの最後に追加
+        });
+
+        // 「info」へ送信処理
+        $("#send2").on("click",function(){
+            const msg2 = {
+            uname: $("#uname2").val(),
+            text: $("#text2").val()
+            }
+            $("#text2").val("") //データ送信時にテキストを空にする
+            const newPostRef2 = push(infodb);//データを一意なもの(ユニークなもの)にするための記述
+            set(newPostRef2,msg2)//データを保存
+        });
+        // 「info」送信処理２
+        $("#text2").on("keydown",function(e){
+            // console.log(e);
+            if(e.keyCode==13){
+            const msg2 = {
+            uname: $("#uname2").val(),
+            text: $("#text2").val()
+            }
+            $("#text2").val("") //データ送信時にテキストを空にする
+            const newPostRef2 = push(infodb);//データを一意なもの(ユニークなもの)にするための記述
+            set(newPostRef2,msg2)//データを保存
+            }
+        });
+
+        
+        // 「info」受信処理
+        onChildAdded(infodb,function(data){
+            const msg2 = data.val();
+            const key2 = data.key;
+            let h = '<p>';
+                h += msg2.uname;
+                h += '<br>';
+                h += msg2.text;
+                h += '</p>';
+                $("#output2").append(h); //#outputの最後に追加
+        });
+        
+    </script>
+
+    <!-- ローカルストレージ書き込み -->
+    <script>
+        $("#save").on("click",function(){
+            const key =$("#key").val();
+            const value = $("#memo").val();
+            localStorage.setItem(key,value);
+
+            //一覧に表示
+            const html = '<tr><th>'+key+'</th><td>'+value+'</td></tr>';
+            $("#list").append(html);
+        });
+        $("#clear").on("click",function(){
+            localStorage.clear();
+            $("#list").empty();
+            
+
+        });
+        //3.ページ読み込み：保存データ取得表示
+        for(let i=0; i<localStorage.length; i++){
+            const key = localStorage.key(i);
+            const value = localStorage.getItem(key);
+
+            const html = '<tr><th>'+key+'</th><td>'+value+'</td></tr>';
+            $("#text2").append(html);
+            // $("#list").hidden(html);
+        }
+    </script>
+
+
+
+
+
+
+
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
